@@ -31,6 +31,14 @@ function render(ElementPtr)
             ret = false
         end
     end
+    if Selectable("Paste Settings") then
+        TogglePasteSettings(EditModePtr)
+        ret = false
+    end
+    if Selectable("Scatter Mode") then
+        ToggleScatterMode(EditModePtr)
+        ret = false
+    end
     return ret
 end
 

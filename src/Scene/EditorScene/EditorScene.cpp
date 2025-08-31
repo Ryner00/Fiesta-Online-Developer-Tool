@@ -12,6 +12,7 @@
 #include <filesystem>
 #include "EditorScene/Modes/SHMDMode.h"
 #include "EditorScene/Modes/SHBDMode.h"
+#include "EditorScene/Modes/SBIMode.h"
 #include "EditorScene/Modes/HTDGMode.h"
 #include "EditorScene/Modes/TextureMode.h"
 #include "EditorScene/Modes/VertexMode.h"
@@ -81,6 +82,10 @@ void EditorScene::CreateMenuBar()
 		{
 			kWorld->SaveSHBD();
 		}
+		if (ImGui::MenuItem("Save SBI"))
+		{
+			kWorld->SaveSBI();
+		}
 		if (ImGui::MenuItem("Save HTD(G)"))
 		{
 			kWorld->SaveHTD();
@@ -101,6 +106,7 @@ void EditorScene::CreateMenuBar()
 		{
 			kWorld->SaveHTD();
 			kWorld->SaveSHBD();
+			kWorld->SaveSBI();
 			kWorld->SaveSHMD();
 			kWorld->SaveIni();
 			kWorld->SaveVertex();
@@ -136,6 +142,11 @@ void EditorScene::CreateMenuBar()
 			_EditMode = NULL;
 			_EditMode = NiNew SHBDMode(kWorld, this);
 		}
+		if (ImGui::Selectable("SBI", NiIsKindOf(SBIMode, _EditMode)))
+		{
+			_EditMode = NULL;
+			_EditMode = NiNew SBIMode(kWorld, this);
+		}
 		if (ImGui::Selectable("HTD", NiIsKindOf(HTDGMode, _EditMode)))
 		{
 			_EditMode = NULL;
@@ -159,6 +170,11 @@ void EditorScene::CreateMenuBar()
 		ImGui::EndCombo();
 	}
 	ImGui::Checkbox("Freeze Time", &FreezeTime);
+	
+	ImGui::SetNextItemWidth(150);
+	ImGui::SliderFloat("Camera Speed", &CameraSpeed, 50.0f, 500.0f, "%.0f");
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Hold Shift while moving for 10x speed");
 
 	ImGui::SameLine(ImGui::GetWindowWidth() - 30);
 	ImGui::Text("(?)");

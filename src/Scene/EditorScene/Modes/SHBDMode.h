@@ -2,6 +2,7 @@
 #include "TerrainMode.h"
 #include <Scene/ScreenElements/LuaElement/LuaElement.h>
 #include "ImGui/ImGuizmo.h"
+#include "Data/NiCustom/NiSHMDPickable.h"
 
 NiSmartPointer(SHBDMode);
 class SHBDMode : public TerrainMode
@@ -32,6 +33,18 @@ class SHBDMode : public TerrainMode
 		_BaseNode->AttachChild(_SHBDNode);
 		_BaseNode->AttachChild(MouseOrb);
 		SetBrushSize(1);
+		
+		_terrainGenerationActive = false;
+		_terrainGenerationTimer = 0.0f;
+		_currentTerrainX = 0;
+		_currentTerrainY = 0;
+		_terrainCellsPerFrame = 2000;
+		_totalTerrainCells = 0;
+		_processedTerrainCells = 0;
+		_captureHeight = 0.0f;
+		_captureTolerance = 15.0f;
+		_keepExistingSHBD = false;
+		_generationAccuracy = 3;
 	}
 	~SHBDMode()
 	{
@@ -45,6 +58,20 @@ class SHBDMode : public TerrainMode
 	void SetWalkable(bool Walkable) { _Walkable = Walkable; }
 	bool GetWalkable() { return _Walkable; }
 	void SetBrushSize(int Size) { _BrushSize = Size; MouseOrb->SetScale((6.25f / 160.f) * _BrushSize); }
+	void AutoGenerateSHBD();
+	void AutoGenerateTerrainSHBD();
+	void GenerateSHBDForObjects(const std::vector<NiSHMDPickablePtr>& objects);
+	void ResetSHBD();
+	
+	void SetCaptureHeight(float height) { _captureHeight = height; }
+	float GetCaptureHeight() { return _captureHeight; }
+	void SetCaptureTolerance(float tolerance) { _captureTolerance = tolerance; }
+	float GetCaptureTolerance() { return _captureTolerance; }
+	float GetCurrentSHBDHeight() { return _SHBDNode->GetTranslate().z; }
+	void SetKeepExistingSHBD(bool keep) { _keepExistingSHBD = keep; }
+	bool GetKeepExistingSHBD() { return _keepExistingSHBD; }
+	void SetGenerationAccuracy(int accuracy) { _generationAccuracy = accuracy; }
+	int GetGenerationAccuracy() { return _generationAccuracy; }
 private:
 	void UpdateSHBD();
 
@@ -52,11 +79,25 @@ private:
 
 	void CreateSHBDNode();
 	void UpdateMouseIntersect();
+	void UpdateSHBDArea(int centerX, int centerY, unsigned int SHBDSize, bool value);
 
 	std::vector<std::vector<NiPixelDataPtr>> TextureConnector;
 	int TextureSize = 128;
 
 	std::vector<char> _Data;
 	unsigned int Walkable, Blocked;
+	
+	bool _terrainGenerationActive;
+	float _terrainGenerationTimer;
+	int _currentTerrainX;
+	int _currentTerrainY;
+	int _terrainCellsPerFrame;
+	int _totalTerrainCells;
+	int _processedTerrainCells;
+	
+	float _captureHeight;
+	float _captureTolerance;
+	bool _keepExistingSHBD;
+	int _generationAccuracy;
 
 };

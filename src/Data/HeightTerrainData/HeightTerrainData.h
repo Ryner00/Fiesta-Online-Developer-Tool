@@ -31,6 +31,9 @@ public:
 	{
 		return GetHTD(_Width / 2, _Height / 2);
 	}
+	
+	int GetWidth() const { return _Width; }
+	int GetHeight() const { return _Height; }
 
 	inline void SetHTD(int w, int h, float value) 
 	{

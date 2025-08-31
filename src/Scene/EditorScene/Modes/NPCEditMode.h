@@ -3,6 +3,7 @@
 #include <Scene/ScreenElements/LuaElement/LuaElement.h>
 #include "ImGui/ImGuizmo.h"
 #include "ShineObject/ShineObject.h"
+#include "MinimapRenderer.h"
 
 
 NiSmartPointer(NPCEditMode);
@@ -23,6 +24,7 @@ public:
 	virtual void Update(float fTime);
 	virtual void ProcessInput();
 	virtual std::string GetEditModeName() { return "NPC"; }
+	virtual void ToggleMinimap() { _minimap.ToggleVisible(); }
 	void SelectObject(NiPickablePtr Obj, bool append = false)
 	{
 		if (!Obj || !NiIsKindOf(ShineObject, Obj))
@@ -67,4 +69,5 @@ private:
 	NiPoint3 SnapSize = NiPoint3(2.5f, 2.5f, 2.5f);
 	std::vector<NiPickablePtr> SelectedObjects;
 	NiPickablePtr CopyObject = NULL;
+	MinimapRenderer _minimap;
 };

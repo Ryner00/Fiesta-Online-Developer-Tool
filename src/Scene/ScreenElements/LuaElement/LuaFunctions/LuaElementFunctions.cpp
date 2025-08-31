@@ -2,10 +2,13 @@
 #include "Logger.h"
 #include <Scene/EditorScene/Modes/SHMDMode.h>
 #include <Scene/EditorScene/Modes/SHBDMode.h>
+#include <Scene/EditorScene/Modes/SBIMode.h>
 #include <Scene/EditorScene/Modes/NPCEditMode.h>
 #include <Scene/EditorScene/Modes/TerrainBrushMode.h>
+#include <Scene/EditorScene/Modes/HTDGMode.h>
 #include <Scene/EditorScene/Modes/TextureMode.h>
 #include <Scene/EditorScene/Modes/VertexMode.h>
+#include <Scene/EditorScene/Modes/TerrainMode.h>
 #include <Scene/EditorScene/Modes/Brush/LuaBrush.h>
 
 int LogFromLua(lua_State* Script)
@@ -79,6 +82,11 @@ int ImGuiEndTabBar(lua_State* Script)
 int ImGuiNewLine(lua_State* Script)
 {
 	ImGui::NewLine();
+	return 0;
+}
+int ImGuiSeparator(lua_State* Script)
+{
+	ImGui::Separator();
 	return 0;
 }
 int ImGuiPopTree(lua_State* Script)
@@ -243,6 +251,21 @@ int MakeNoCollapse(lua_State* Script)
 		if (element)
 		{
 			element->AddFlag(ImGuiWindowFlags_NoCollapse);
+		}
+	}
+	return 0;
+}
+
+int SetWindowSize(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isnumber(Script, 2) && lua_isnumber(Script, 3))
+	{
+		LuaElement* element = (LuaElement*)lua_tointeger(Script, 1);
+		if (element)
+		{
+			float width = (float)lua_tonumber(Script, 2);
+			float height = (float)lua_tonumber(Script, 3);
+			element->SetSize(ImVec2(width, height));
 		}
 	}
 	return 0;
@@ -725,6 +748,139 @@ int GetSelectedNode(lua_State* Script)
 	}
 	return 0;
 }
+
+int GetSelectedObjectCount(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr _EditMode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHMDMode, _EditMode))
+		{
+			SHMDModePtr mode = NiSmartPointerCast(SHMDMode, _EditMode);
+			int count = mode->GetSelectedObjectCount();
+			lua_pushinteger(Script, count);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int GetAverageScale(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr _EditMode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHMDMode, _EditMode))
+		{
+			SHMDModePtr mode = NiSmartPointerCast(SHMDMode, _EditMode);
+			float avgScale = mode->GetAverageScale();
+			lua_pushnumber(Script, avgScale);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int UpdateMultipleObjectsScale(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isnumber(Script, 2))
+	{
+		EditModePtr _EditMode = (EditMode*)lua_tointeger(Script, 1);
+		float scaleMultiplier = (float)lua_tonumber(Script, 2);
+		if (NiIsKindOf(SHMDMode, _EditMode))
+		{
+			SHMDModePtr mode = NiSmartPointerCast(SHMDMode, _EditMode);
+			mode->UpdateMultipleObjectsScale(scaleMultiplier);
+		}
+	}
+	return 0;
+}
+
+int SetAverageScale(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isnumber(Script, 2))
+	{
+		EditModePtr _EditMode = (EditMode*)lua_tointeger(Script, 1);
+		float targetScale = (float)lua_tonumber(Script, 2);
+		if (NiIsKindOf(SHMDMode, _EditMode))
+		{
+			SHMDModePtr mode = NiSmartPointerCast(SHMDMode, _EditMode);
+			mode->SetAverageScale(targetScale);
+		}
+	}
+	return 0;
+}
+
+int GetBrushMode(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr _EditMode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(HTDGMode, _EditMode))
+		{
+			HTDGModePtr mode = NiSmartPointerCast(HTDGMode, _EditMode);
+			bool brushMode = mode->GetBrushMode();
+			lua_pushboolean(Script, brushMode);
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int SetBrushMode(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isboolean(Script, 2))
+	{
+		EditModePtr _EditMode = (EditMode*)lua_tointeger(Script, 1);
+		bool enabled = lua_toboolean(Script, 2);
+		if (NiIsKindOf(HTDGMode, _EditMode))
+		{
+			HTDGModePtr mode = NiSmartPointerCast(HTDGMode, _EditMode);
+			mode->SetBrushMode(enabled);
+		}
+	}
+	return 0;
+}
+
+int ConfirmBrushGeneration(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr _EditMode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(HTDGMode, _EditMode))
+		{
+			HTDGModePtr mode = NiSmartPointerCast(HTDGMode, _EditMode);
+			mode->ConfirmBrushGeneration();
+		}
+	}
+	return 0;
+}
+
+int ClearPaintedAreas(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr _EditMode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(HTDGMode, _EditMode))
+		{
+			HTDGModePtr mode = NiSmartPointerCast(HTDGMode, _EditMode);
+			mode->ClearPaintedAreas();
+		}
+	}
+	return 0;
+}
+
+int GetSelectedObjectPath(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		NiPickablePtr obj = (NiPickable*)lua_tointeger(Script, 1);
+		std::string path = obj->GetSHMDPath();
+		lua_pushstring(Script, path.c_str());
+		return 1;
+	}
+	return 0;
+}
 int GetTranslate(lua_State* Script) {
 	if (lua_isinteger(Script, 1))
 	{
@@ -899,6 +1055,32 @@ int CreateAddElement(lua_State* Script)
 	}
 	return 0;
 }
+int TogglePasteSettings(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHMDMode, mode))
+		{
+			SHMDModePtr ptr = NiSmartPointerCast(SHMDMode, mode);
+			ptr->TogglePasteSettings();
+		}
+	}
+	return 0;
+}
+int ToggleScatterMode(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHMDMode, mode))
+		{
+			SHMDModePtr ptr = NiSmartPointerCast(SHMDMode, mode);
+			ptr->ToggleScatterMode();
+		}
+	}
+	return 0;
+}
 int GetBrushSize(lua_State* Script)
 {
 	if (lua_isinteger(Script, 1))
@@ -1001,6 +1183,581 @@ int SetWalkable(lua_State* Script)
 	}
 	return 0;
 }
+
+int AutoGenerateSHBD(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			ptr->AutoGenerateSHBD();
+		}
+	}
+	return 0;
+}
+
+int AutoGenerateTerrainSHBD(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			ptr->AutoGenerateTerrainSHBD();
+		}
+	}
+	return 0;
+}
+
+int ResetSHBD(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			ptr->ResetSHBD();
+		}
+	}
+	return 0;
+}
+
+int GetCaptureHeight(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			lua_pushnumber(Script, ptr->GetCaptureHeight());
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int SetCaptureHeight(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isnumber(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			float height = (float)lua_tonumber(Script, 2);
+			ptr->SetCaptureHeight(height);
+		}
+	}
+	return 0;
+}
+
+int GetCaptureTolerance(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			lua_pushnumber(Script, ptr->GetCaptureTolerance());
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int SetCaptureTolerance(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isnumber(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			float tolerance = (float)lua_tonumber(Script, 2);
+			ptr->SetCaptureTolerance(tolerance);
+		}
+	}
+	return 0;
+}
+
+int GetCurrentSHBDHeight(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			lua_pushnumber(Script, ptr->GetCurrentSHBDHeight());
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int GetKeepExistingSHBD(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			lua_pushboolean(Script, ptr->GetKeepExistingSHBD());
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int SetKeepExistingSHBD(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isboolean(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			bool keep = lua_toboolean(Script, 2);
+			ptr->SetKeepExistingSHBD(keep);
+		}
+	}
+	return 0;
+}
+
+int GetGenerationAccuracy(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			lua_pushinteger(Script, ptr->GetGenerationAccuracy());
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int SetGenerationAccuracy(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SHBDMode, mode))
+		{
+			SHBDModePtr ptr = NiSmartPointerCast(SHBDMode, mode);
+			int accuracy = lua_tointeger(Script, 2);
+			ptr->SetGenerationAccuracy(accuracy);
+		}
+	}
+	return 0;
+}
+
+int GetPaintMode(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			lua_pushboolean(Script, ptr->GetPaintMode());
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int SetPaintMode(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isboolean(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			bool paintMode = lua_toboolean(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->SetPaintMode(paintMode);
+		}
+	}
+	return 0;
+}
+
+int GetDoorCount(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			lua_pushinteger(Script, ptr->GetDoorCount());
+			return 1;
+		}
+	}
+	lua_pushinteger(Script, 0);
+	return 1;
+}
+
+int GetDoor(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			int index = lua_tointeger(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			SBIDoorBlock* door = ptr->GetDoor(index);
+			if (door)
+			{
+				lua_pushboolean(Script, true);
+				return 1;
+			}
+		}
+	}
+	lua_pushboolean(Script, false);
+	return 1;
+}
+
+int SetSelectedDoor(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			int index = lua_tointeger(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->SetSelectedDoor(index);
+		}
+	}
+	return 0;
+}
+
+int GetSelectedDoor(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			lua_pushinteger(Script, ptr->GetSelectedDoor());
+			return 1;
+		}
+	}
+	lua_pushinteger(Script, -1);
+	return 1;
+}
+
+int CreateDoor(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isstring(Script, 2) && 
+	    lua_isnumber(Script, 3) && lua_isnumber(Script, 4) &&
+	    lua_isnumber(Script, 5) && lua_isnumber(Script, 6))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			std::string name = lua_tostring(Script, 2);
+			float startX = lua_tonumber(Script, 3);
+			float startY = lua_tonumber(Script, 4);
+			float endX = lua_tonumber(Script, 5);
+			float endY = lua_tonumber(Script, 6);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->CreateDoor(name, startX, startY, endX, endY);
+		}
+	}
+	return 0;
+}
+
+int DeleteDoor(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			int index = lua_tointeger(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->DeleteDoor(index);
+		}
+	}
+	return 0;
+}
+
+int TeleportToDoor(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			int index = lua_tointeger(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->TeleportToDoor(index);
+		}
+	}
+	return 0;
+}
+
+int GetTeleportDoorIndex(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			lua_pushinteger(Script, ptr->GetTeleportDoorIndex());
+			return 1;
+		}
+	}
+	lua_pushinteger(Script, 0);
+	return 1;
+}
+
+int SetTeleportDoorIndex(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			int index = lua_tointeger(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->SetTeleportDoorIndex(index);
+		}
+	}
+	return 0;
+}
+
+int CreateDoorNearCamera(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isstring(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			std::string name = lua_tostring(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->CreateDoorNearCamera(name);
+		}
+	}
+	return 0;
+}
+
+int ResizeDoor(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2) && 
+	    lua_isnumber(Script, 3) && lua_isnumber(Script, 4) &&
+	    lua_isnumber(Script, 5) && lua_isnumber(Script, 6))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			int index = lua_tointeger(Script, 2);
+			float startX = lua_tonumber(Script, 3);
+			float startY = lua_tonumber(Script, 4);
+			float endX = lua_tonumber(Script, 5);
+			float endY = lua_tonumber(Script, 6);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->ResizeDoor(index, startX, startY, endX, endY);
+		}
+	}
+	return 0;
+}
+
+int GetDoorData(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			int index = lua_tointeger(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			SBIDoorBlock* door = ptr->GetDoor(index);
+			if (door)
+			{
+				lua_newtable(Script);
+				
+				lua_pushstring(Script, "startX");
+				lua_pushnumber(Script, door->startPos.x);
+				lua_settable(Script, -3);
+				
+				lua_pushstring(Script, "startY");
+				lua_pushnumber(Script, door->startPos.y);
+				lua_settable(Script, -3);
+				
+				lua_pushstring(Script, "endX");
+				lua_pushnumber(Script, door->endPos.x);
+				lua_settable(Script, -3);
+				
+				lua_pushstring(Script, "endY");
+				lua_pushnumber(Script, door->endPos.y);
+				lua_settable(Script, -3);
+				
+				return 1;
+			}
+		}
+	}
+	lua_pushnil(Script);
+	return 1;
+}
+
+int GetDragMode(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			lua_pushboolean(Script, ptr->GetDragMode());
+			return 1;
+		}
+	}
+	lua_pushboolean(Script, false);
+	return 1;
+}
+
+int SetDragMode(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isboolean(Script, 2))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			bool dragMode = lua_toboolean(Script, 2);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->SetDragMode(dragMode);
+		}
+	}
+	return 0;
+}
+
+int GetSHBDData(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			auto SHBD = ptr->GetWorld()->GetSHBD();
+			if (SHBD)
+			{
+				lua_newtable(Script);
+				lua_pushstring(Script, "size");
+				lua_pushinteger(Script, SHBD->GetSHBDSize());
+				lua_settable(Script, -3);
+				return 1;
+			}
+		}
+	}
+	lua_pushnil(Script);
+	return 1;
+}
+
+int IsWalkable(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isinteger(Script, 2) && lua_isinteger(Script, 3))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			int x = lua_tointeger(Script, 2);
+			int y = lua_tointeger(Script, 3);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			auto SHBD = ptr->GetWorld()->GetSHBD();
+			if (SHBD)
+			{
+				lua_pushboolean(Script, SHBD->IsWalkable(x, y));
+				return 1;
+			}
+		}
+	}
+	lua_pushboolean(Script, false);
+	return 1;
+}
+
+int GetPixelSize(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			auto ini = ptr->GetWorld()->GetShineIni();
+			auto SHBD = ptr->GetWorld()->GetSHBD();
+			if (ini && SHBD)
+			{
+				float PixelSize = SHBD->GetMapSize() * ini->GetOneBlockWidht() / SHBD->GetSHBDSize();
+				lua_pushnumber(Script, PixelSize);
+				return 1;
+			}
+		}
+	}
+	lua_pushnumber(Script, 1.0f);
+	return 1;
+}
+
+int TeleportCamera(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1) && lua_isnumber(Script, 2) && lua_isnumber(Script, 3) && lua_isnumber(Script, 4))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(SBIMode, mode))
+		{
+			float x = lua_tonumber(Script, 2);
+			float y = lua_tonumber(Script, 3);
+			float z = lua_tonumber(Script, 4);
+			SBIModePtr ptr = NiSmartPointerCast(SBIMode, mode);
+			ptr->GetCamera()->SetTranslate(NiPoint3(x, y, z));
+		}
+	}
+	return 0;
+}
+
+int RenderMinimap(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(TerrainMode, mode))
+		{
+			TerrainModePtr ptr = NiSmartPointerCast(TerrainMode, mode);
+			ptr->GetMinimap()->DrawMinimap(ptr->GetTerrainWorld(), ptr->GetTerrainCamera(), ptr->GetEditModeName());
+		}
+	}
+	return 0;
+}
+
+int ResetMinimapZoom(lua_State* Script)
+{
+	if (lua_isinteger(Script, 1))
+	{
+		EditModePtr mode = (EditMode*)lua_tointeger(Script, 1);
+		if (NiIsKindOf(TerrainMode, mode))
+		{
+			TerrainModePtr ptr = NiSmartPointerCast(TerrainMode, mode);
+			ptr->GetMinimap()->ResetZoom();
+		}
+	}
+	return 0;
+}
+
 int RenderBrushes(lua_State* Script) 
 {
 	if (lua_isinteger(Script, 1))
@@ -1337,7 +2094,7 @@ int Combo(lua_State* Script)
 						}
 						lua_pop(Script, 1); // Entferne "Name" vom Stack
 					}
-					lua_pop(Script, 1); // Entferne den Wert (Tabelle) vom Stack, behalte den Schlüssel
+					lua_pop(Script, 1); // Entferne den Wert (Tabelle) vom Stack, behalte den Schlï¿½ssel
 				}
 				ImGui::EndCombo(); 
 			}
@@ -1700,6 +2457,9 @@ void SetFunctions(lua_State* Script)
 	lua_pushcclosure(Script, ImGuiNewLine, 0);
 	lua_setglobal(Script, "NewLine");
 
+	lua_pushcclosure(Script, ImGuiSeparator, 0);
+	lua_setglobal(Script, "Separator");
+
 	lua_pushcclosure(Script, ImGuiPopTree, 0);
 	lua_setglobal(Script, "PopTree");
 
@@ -1726,6 +2486,9 @@ void SetFunctions(lua_State* Script)
 
 	lua_pushcclosure(Script, MakeNoCollapse, 0);
 	lua_setglobal(Script, "MakeNoCollapse");
+	
+	lua_pushcclosure(Script, SetWindowSize, 0);
+	lua_setglobal(Script, "SetWindowSize");
 
 	lua_pushcclosure(Script, MakeNoMove, 0);
 	lua_setglobal(Script, "MakeNoMove");
@@ -1775,6 +2538,7 @@ void SetFunctions(lua_State* Script)
 	lua_register(Script, "RadioButton", RadioButton);
 	lua_register(Script, "SetOperationMode", SetOperationMode);
 	lua_register(Script, "GetSelectedNode", GetSelectedNode);
+	lua_register(Script, "GetSelectedObjectPath", GetSelectedObjectPath);
 	lua_register(Script, "GetTranslate", GetTranslate);
 	lua_register(Script, "GetRotate", GetRotate);
 	lua_register(Script, "DragFloat3", DragFloat3);
@@ -1788,6 +2552,16 @@ void SetFunctions(lua_State* Script)
 	lua_register(Script, "SetSnapMove", SetSnapMove);
 	lua_register(Script, "GetSnapMove", GetSnapMove);
 	lua_register(Script, "CreateAddElement", CreateAddElement);
+	lua_register(Script, "TogglePasteSettings", TogglePasteSettings);
+	lua_register(Script, "ToggleScatterMode", ToggleScatterMode);
+	lua_register(Script, "GetSelectedObjectCount", GetSelectedObjectCount);
+	lua_register(Script, "GetAverageScale", GetAverageScale);
+	lua_register(Script, "UpdateMultipleObjectsScale", UpdateMultipleObjectsScale);
+	lua_register(Script, "SetAverageScale", SetAverageScale);
+	lua_register(Script, "GetBrushMode", GetBrushMode);
+	lua_register(Script, "SetBrushMode", SetBrushMode);
+	lua_register(Script, "ConfirmBrushGeneration", ConfirmBrushGeneration);
+	lua_register(Script, "ClearPaintedAreas", ClearPaintedAreas);
 
 	lua_register(Script, "GetBrushSize", GetBrushSize);
 	lua_register(Script, "DragInt", DragInt);
@@ -1796,6 +2570,40 @@ void SetFunctions(lua_State* Script)
 	lua_register(Script, "SetShowSHMDElements", SetShowSHMDElements);
 	lua_register(Script, "SetWalkable", SetWalkable);
 	lua_register(Script, "GetWalkable", GetWalkable);
+	lua_register(Script, "AutoGenerateSHBD", AutoGenerateSHBD);
+	lua_register(Script, "AutoGenerateTerrainSHBD", AutoGenerateTerrainSHBD);
+	lua_register(Script, "ResetSHBD", ResetSHBD);
+	lua_register(Script, "GetCaptureHeight", GetCaptureHeight);
+	lua_register(Script, "SetCaptureHeight", SetCaptureHeight);
+	lua_register(Script, "GetCaptureTolerance", GetCaptureTolerance);
+	lua_register(Script, "SetCaptureTolerance", SetCaptureTolerance);
+	lua_register(Script, "GetCurrentSHBDHeight", GetCurrentSHBDHeight);
+	lua_register(Script, "GetKeepExistingSHBD", GetKeepExistingSHBD);
+	lua_register(Script, "SetKeepExistingSHBD", SetKeepExistingSHBD);
+	lua_register(Script, "GetGenerationAccuracy", GetGenerationAccuracy);
+	lua_register(Script, "SetGenerationAccuracy", SetGenerationAccuracy);
+	lua_register(Script, "SetPaintMode", SetPaintMode);
+	lua_register(Script, "GetPaintMode", GetPaintMode);
+	lua_register(Script, "GetDoorCount", GetDoorCount);
+	lua_register(Script, "GetDoor", GetDoor);
+	lua_register(Script, "SetSelectedDoor", SetSelectedDoor);
+	lua_register(Script, "GetSelectedDoor", GetSelectedDoor);
+	lua_register(Script, "CreateDoor", CreateDoor);
+	lua_register(Script, "DeleteDoor", DeleteDoor);
+	lua_register(Script, "TeleportToDoor", TeleportToDoor);
+	lua_register(Script, "GetTeleportDoorIndex", GetTeleportDoorIndex);
+	lua_register(Script, "SetTeleportDoorIndex", SetTeleportDoorIndex);
+	lua_register(Script, "CreateDoorNearCamera", CreateDoorNearCamera);
+	lua_register(Script, "ResizeDoor", ResizeDoor);
+	lua_register(Script, "GetDoorData", GetDoorData);
+	lua_register(Script, "GetDragMode", GetDragMode);
+	lua_register(Script, "SetDragMode", SetDragMode);
+	lua_register(Script, "GetSHBDData", GetSHBDData);
+	lua_register(Script, "IsWalkable", IsWalkable);
+	lua_register(Script, "GetPixelSize", GetPixelSize);
+	lua_register(Script, "TeleportCamera", TeleportCamera);
+	lua_register(Script, "RenderMinimap", RenderMinimap);
+	lua_register(Script, "ResetMinimapZoom", ResetMinimapZoom);
 	lua_register(Script, "RenderBrushes", RenderBrushes);
 	lua_register(Script, "SetHTD", SetHTD);
 	lua_register(Script, "GetHTD", GetHTD);

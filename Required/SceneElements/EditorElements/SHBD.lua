@@ -33,6 +33,50 @@ function render(ElementPtr)
             end 
             SetShowSHMDElements(EditModePtr,SnapMove)
         end
+
+        local CaptureHeight = GetCaptureHeight(EditModePtr)
+        local changed1, CaptureHeight = DragFloat(CaptureHeight, "Capture Height", 1.0, -200.0, 500.0)
+        if changed1 then
+            SetCaptureHeight(EditModePtr, CaptureHeight)
+        end
+        
+        local CaptureTolerance = GetCaptureTolerance(EditModePtr)
+        local changed2, CaptureTolerance = DragFloat(CaptureTolerance, "Capture Tolerance", 0.1, 1.0, 50.0)
+        if changed2 then
+            SetCaptureTolerance(EditModePtr, CaptureTolerance)
+        end
+        
+        local CurrentHeight = GetCurrentSHBDHeight(EditModePtr)
+        Text("Current SHBD Height: " .. string.format("%.1f", CurrentHeight))
+        
+        local KeepExisting = GetKeepExistingSHBD(EditModePtr)
+        if CheckBox("Keep Existing SHBD", KeepExisting) then
+            if KeepExisting then
+                KeepExisting = false
+            else
+                KeepExisting = true
+            end 
+            SetKeepExistingSHBD(EditModePtr, KeepExisting)
+        end
+        
+        local Accuracy = GetGenerationAccuracy(EditModePtr)
+        local changed3, Accuracy = DragInt(Accuracy, "Generation Speed", 1, 1, 7)
+        if changed3 then
+            SetGenerationAccuracy(EditModePtr, Accuracy)
+        end
+        Text("1=Fastest (less accurate), 7=Slowest (most accurate)")
+        
+        if Button("Auto generate SHBD (Objects)") then
+            AutoGenerateSHBD(EditModePtr)
+        end
+        
+        if Button("Auto generate SHBD (Terrain)") then
+            AutoGenerateTerrainSHBD(EditModePtr)
+        end
+        
+        if Button("Reset SHBD (Temporary)") then
+            ResetSHBD(EditModePtr)
+        end
     end
 end
 

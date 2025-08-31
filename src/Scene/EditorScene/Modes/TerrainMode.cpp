@@ -10,7 +10,8 @@ NiImplementRTTI(TerrainMode, EditMode);
 void TerrainMode::Draw()
 {
 	EditMode::Draw();
-
+	
+	_minimap.DrawMinimap(kWorld, Camera, GetEditModeName());
 }
 void TerrainMode::Update(float fTime)
 {

@@ -102,6 +102,10 @@ namespace ImGui
         // this function will pre-fill the input dialog with a filename.
         void SetInputName(std::string_view input);
 
+        void SetSearchFilter(const std::string& filter);
+
+        void SetDirectPath(const std::string& path);
+
         bool IsOpenFlag();
     private:
 
@@ -179,6 +183,10 @@ namespace ImGui
 
         std::string openNewDirLabel_;
         std::unique_ptr<std::array<char, INPUT_NAME_BUF_SIZE>> newDirNameBuf_;
+        
+        std::string searchFilter_;
+        std::unique_ptr<std::array<char, INPUT_NAME_BUF_SIZE>> searchBuf_;
+        std::unique_ptr<std::array<char, INPUT_NAME_BUF_SIZE>> pathBuf_;
 
 #ifdef _WIN32
         uint32_t drives_;
@@ -189,7 +197,9 @@ namespace ImGui
 inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
     : width_(700), height_(450), posX_(0), posY_(0), flags_(flags),
       openFlag_(false), closeFlag_(false), isOpened_(false), ok_(false), posIsSet_(false),
-      rangeSelectionStart_(0), inputNameBuf_(std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>())
+      rangeSelectionStart_(0), inputNameBuf_(std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>()),
+      searchBuf_(std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>()),
+      pathBuf_(std::make_unique<std::array<char, INPUT_NAME_BUF_SIZE>>())
 {
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
     {
@@ -199,6 +209,10 @@ inline ImGui::FileBrowser::FileBrowser(ImGuiFileBrowserFlags flags)
 
     inputNameBuf_->front() = '\0';
     inputNameBuf_->back() = '\0';
+    searchBuf_->front() = '\0';
+    searchBuf_->back() = '\0';
+    pathBuf_->front() = '\0';
+    pathBuf_->back() = '\0';
     SetTitle("file browser");
     SetPwd(std::filesystem::current_path());
 
@@ -248,6 +262,9 @@ inline ImGui::FileBrowser &ImGui::FileBrowser::operator=(
     fileRecords_ = copyFrom.fileRecords_;
 
     *inputNameBuf_ = *copyFrom.inputNameBuf_;
+    *searchBuf_ = *copyFrom.searchBuf_;
+    *pathBuf_ = *copyFrom.pathBuf_;
+    searchFilter_ = copyFrom.searchFilter_;
 
     openNewDirLabel_ = copyFrom.openNewDirLabel_;
     if(flags_ & ImGuiFileBrowserFlags_CreateNewDir)
@@ -476,6 +493,30 @@ inline void ImGui::FileBrowser::Display()
         }
     }
 
+    SameLine();
+    PushItemWidth(150);
+    if(InputText("##search", searchBuf_->data(), searchBuf_->size()))
+    {
+        searchFilter_ = searchBuf_->data();
+    }
+    PopItemWidth();
+
+    SameLine();
+    PushItemWidth(200);
+    if(InputText("##path", pathBuf_->data(), pathBuf_->size(), ImGuiInputTextFlags_EnterReturnsTrue))
+    {
+        std::filesystem::path newPath(pathBuf_->data());
+        if(std::filesystem::exists(newPath) && std::filesystem::is_directory(newPath))
+        {
+            SetPwd(newPath);
+        }
+    }
+    if(IsItemHovered())
+    {
+        SetTooltip("Enter path and press Enter");
+    }
+    PopItemWidth();
+
     bool focusOnInputText = false;
     if(newDirNameBuf_)
     {
@@ -542,6 +583,15 @@ inline void ImGui::FileBrowser::Display()
             if(!rsc.name.empty() && rsc.name.c_str()[0] == '$')
             {
                 continue;
+            }
+            if(!searchFilter_.empty())
+            {
+                std::string lowerName = ToLower(rsc.showName);
+                std::string lowerFilter = ToLower(searchFilter_);
+                if(lowerName.find(lowerFilter) == std::string::npos)
+                {
+                    continue;
+                }
             }
 
             const bool selected = selectedFilenames_.find(rsc.name)
@@ -682,6 +732,19 @@ inline void ImGui::FileBrowser::Display()
                     selectedFilenames_.insert(record.name);
                 }
             }
+        }
+
+        if(IsKeyPressed(ImGuiKey_F) && (IsKeyDown(ImGuiKey_LeftCtrl) || IsKeyDown(ImGuiKey_RightCtrl)))
+        {
+            SetKeyboardFocusHere(-2);
+        }
+
+        if(IsKeyPressed(ImGuiKey_L) && (IsKeyDown(ImGuiKey_LeftCtrl) || IsKeyDown(ImGuiKey_RightCtrl)))
+        {
+            std::string currentPath = pwd_.string();
+            std::strncpy(pathBuf_->data(), currentPath.c_str(), pathBuf_->size() - 1);
+            pathBuf_->at(pathBuf_->size() - 1) = '\0';
+            SetKeyboardFocusHere(-1);
         }
     }
 
@@ -883,13 +946,39 @@ inline void ImGui::FileBrowser::SetInputName(std::string_view input)
     {
         if(input.size() >= static_cast<size_t>(INPUT_NAME_BUF_SIZE))
         {
-            // If input doesn't fit trim off characters
             input = input.substr(0, INPUT_NAME_BUF_SIZE - 1);
         }
         std::copy(input.begin(), input.end(), inputNameBuf_->begin());
         inputNameBuf_->at(input.size()) = '\0';
         selectedFilenames_ = { inputNameBuf_->data() };
     }
+}
+
+inline void ImGui::FileBrowser::SetSearchFilter(const std::string& filter)
+{
+    searchFilter_ = filter;
+    if(filter.size() >= static_cast<size_t>(INPUT_NAME_BUF_SIZE))
+    {
+        std::strncpy(searchBuf_->data(), filter.substr(0, INPUT_NAME_BUF_SIZE - 1).c_str(), INPUT_NAME_BUF_SIZE - 1);
+    }
+    else
+    {
+        std::strncpy(searchBuf_->data(), filter.c_str(), INPUT_NAME_BUF_SIZE - 1);
+    }
+    searchBuf_->at(INPUT_NAME_BUF_SIZE - 1) = '\0';
+}
+
+inline void ImGui::FileBrowser::SetDirectPath(const std::string& path)
+{
+    if(path.size() >= static_cast<size_t>(INPUT_NAME_BUF_SIZE))
+    {
+        std::strncpy(pathBuf_->data(), path.substr(0, INPUT_NAME_BUF_SIZE - 1).c_str(), INPUT_NAME_BUF_SIZE - 1);
+    }
+    else
+    {
+        std::strncpy(pathBuf_->data(), path.c_str(), INPUT_NAME_BUF_SIZE - 1);
+    }
+    pathBuf_->at(INPUT_NAME_BUF_SIZE - 1) = '\0';
 }
 
 inline std::string ImGui::FileBrowser::ToLower(const std::string &s)
@@ -951,6 +1040,9 @@ inline void ImGui::FileBrowser::SetPwdUncatched(const std::filesystem::path &pwd
     UpdateFileRecords();
     selectedFilenames_.clear();
     (*inputNameBuf_)[0] = '\0';
+    std::string currentPath = pwd_.string();
+    std::strncpy(pathBuf_->data(), currentPath.c_str(), pathBuf_->size() - 1);
+    pathBuf_->at(pathBuf_->size() - 1) = '\0';
 }
 
 inline bool ImGui::FileBrowser::IsExtensionMatched(

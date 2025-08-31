@@ -12,6 +12,7 @@ public:
 	bool Draw();
 	EditorScenePtr GetScene() { return _Scene; }
 	void AddFlag(int flag) { flags |= flag; }
+	void SetSize(ImVec2 size) { _Size = size; }
 	std::string GetFileName() { return _FileName; }
 	void SetPointer(long long ptr, const char* Func)
 	{
@@ -30,5 +31,6 @@ private:
 	bool open = true;
 	int flags = 0; 
 	ImVec2 _Pos;
+	ImVec2 _Size;
 };
 

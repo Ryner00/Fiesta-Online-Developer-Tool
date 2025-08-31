@@ -104,14 +104,13 @@ public:
 
 			(_World->*_AttachFunc)({ _Obj }, true);
 
-			_World = NULL;
-			_BaseNode = NULL;
+			// Clear the selection and object, but keep the window open
+			_FileBrowser.ClearSelected();
 			_Obj = NULL;
-			Camera = NULL;
-			Light = NULL;
+			CurPath = "";
 
 			AddSingleObject::SetInitPath(_FileBrowser.GetPwd().string());
-			return false;
+			// Don't return false - keep the window open for more selections
 		}
 		return true;
 	}

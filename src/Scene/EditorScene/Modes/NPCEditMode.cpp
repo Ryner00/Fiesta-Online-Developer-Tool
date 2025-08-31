@@ -9,6 +9,7 @@ void NPCEditMode::Draw()
 {
 	EditMode::Draw();
 	DrawGizmo();
+	_minimap.DrawMinimap(kWorld, kWorld->GetCamera(), GetEditModeName());
 }
 void NPCEditMode::Update(float fTime)
 {

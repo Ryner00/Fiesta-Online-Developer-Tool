@@ -184,6 +184,8 @@
     <ClInclude Include="src\Scene\ScreenElements\ScreenElement.h" />
     <ClInclude Include="src\Scene\ScreenElements\MapLoad\MapLoadElement.h" />
     <ClInclude Include="src\Scene\ScreenElements\LuaElement\LuaElement.h" />
+    <ClInclude Include="src\Scene\ScreenElements\PasteSettings\PasteSettings.h" />
+    <ClInclude Include="src\Scene\ScreenElements\ScatterMode\ScatterMode.h" />
     <ClInclude Include="Includes\lua\lapi.h" />
     <ClInclude Include="Includes\lua\lauxlib.h" />
     <ClInclude Include="Includes\lua\lcode.h" />
@@ -251,6 +253,12 @@
     <ClInclude Include="src\Data\ShineObject\TourScene\DisableLight.h" />
     <ClInclude Include="src\Data\ShineObject\TourScene\FindFaceNode.h" />
     <ClInclude Include="src\Data\ShineObject\TourScene\FindHairNode.h" />
+    <ClInclude Include="src\Scene\EditorScene\Modes\SBIMode.h" />
+    <ClInclude Include="src\Data\ShineBuildingInfo\ShineBuildingInfo.h" />
+    <ClInclude Include="src\Scene\EditorScene\Modes\MinimapRenderer.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scene\ScreenElements\ObjectStash\ObjectStash.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\NiApplication\FiestaOnlineTool.cpp">
@@ -329,6 +337,8 @@
     <ClCompile Include="src\Scene\ScreenElements\ScreenElement.cpp" />
     <ClCompile Include="src\Scene\ScreenElements\MapLoad\MapLoadElement.cpp" />
     <ClCompile Include="src\Scene\ScreenElements\LuaElement\LuaElement.cpp" />
+    <ClCompile Include="src\Scene\ScreenElements\PasteSettings\PasteSettings.cpp" />
+    <ClCompile Include="src\Scene\ScreenElements\ScatterMode\ScatterMode.cpp" />
     <ClCompile Include="Includes\lua\lapi.c" />
     <ClCompile Include="Includes\lua\lauxlib.c" />
     <ClCompile Include="Includes\lua\lbaselib.c" />
@@ -388,6 +398,12 @@
     <ClCompile Include="src\Data\NiCustom\NiSHMDPickable.cpp" />
     <ClCompile Include="src\Data\ShineObject\ShinePlayer.cpp" />
     <ClCompile Include="src\Data\ShineObject\CharShape.cpp" />
+    <ClCompile Include="src\Scene\EditorScene\Modes\SBIMode.cpp" />
+    <ClCompile Include="src\Data\ShineBuildingInfo\ShineBuildingInfo.cpp" />
+    <ClCompile Include="src\Scene\EditorScene\Modes\MinimapRenderer.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scene\ScreenElements\ObjectStash\ObjectStash.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Includes\ImGui\imgui.ini">

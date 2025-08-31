@@ -109,8 +109,8 @@ void FiestaScene::UpdateCamera(float fTime)
 			float SpeedUp = 3.0f;
 			if (io.KeyShift)
 				SpeedUp = 10.0f;
-			NiPoint3 WorldDirect = Camera->GetWorldDirection() * 115.f * DeltaTime * SpeedUp;
-			NiPoint3 RightDirect = Camera->GetWorldRightVector() * 115.f * DeltaTime * SpeedUp;
+			NiPoint3 WorldDirect = Camera->GetWorldDirection() * CameraSpeed * DeltaTime * SpeedUp;
+			NiPoint3 RightDirect = Camera->GetWorldRightVector() * CameraSpeed * DeltaTime * SpeedUp;
 
 			if (W_Key)
 				MoveDirect += WorldDirect;
@@ -121,9 +121,9 @@ void FiestaScene::UpdateCamera(float fTime)
 			if (A_Key)
 				MoveDirect -= RightDirect;
 			if (Q_Key)
-				CameraPosition.z += 115.f * DeltaTime * SpeedUp;
+				CameraPosition.z += CameraSpeed * DeltaTime * SpeedUp;
 			if (E_Key)
-				CameraPosition.z -= 115.f * DeltaTime * SpeedUp;
+				CameraPosition.z -= CameraSpeed * DeltaTime * SpeedUp;
 			Camera->SetTranslate(CameraPosition + MoveDirect);
 		}
 	}
@@ -163,7 +163,7 @@ void FiestaScene::DrawImGui()
 	for (int n = 0; n < IM_ARRAYSIZE(FPS); n++)
 		average += FPS[n];
 	average /= (float)IM_ARRAYSIZE(FPS);
-	auto flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
+	auto flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
 
 	ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 150, 50));
 	ImGui::SetNextWindowSize(ImVec2(150, 100));

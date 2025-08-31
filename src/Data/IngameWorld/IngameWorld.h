@@ -4,6 +4,7 @@
 #include <HeightTerrainData/HeightTerrainData.h>
 #include <ShineIni/ShineIni.h>
 #include <ShineBlockData/ShineBlockData.h>
+#include <ShineBuildingInfo/ShineBuildingInfo.h>
 #include <ShineMapData/ShineMapData.h>
 #include <deque>
 #include <Data/IngameWorld/WorldChanges/WorldChanges.h>
@@ -69,6 +70,16 @@ public:
 			if (!_SHBD->Save(Path))
 				LogError("Failed to save SHBD");
 	}
+	void SaveSBI() 
+	{ 
+		std::string Path = PgUtil::PathFromClientFolder(
+			PgUtil::GetMapFolderPath(_MapInfo->KingdomMap, _MapInfo->MapFolderName)
+			+ _MapInfo->MapFolderName + ".sbi");
+			
+		if (_SBI)
+			if (!_SBI->Save(Path))
+				LogError("Failed to save SBI");
+	}
 	void SaveHTD() 
 	{
 		std::string Path = PgUtil::PathFromClientFolder(
@@ -118,8 +129,11 @@ public:
 	void UpdateScale(std::vector<NiPickablePtr> Node, float Scale, bool Backup = true);
 	float GetFOV() { return m_fCameraFOV; }
 	ShineBlockDataPtr GetSHBD() { return _SHBD; }
+	ShineBuildingInfoPtr GetSBI() { return _SBI; }
 	ShineIniPtr GetShineIni() { return _INI; }
 	NiPoint3 GetWorldPoint(WorldIntersectType point = WorldIntersectType::GroundScene);
+	NiPoint3 GetWorldPointFromScreen(float screenX, float screenY, WorldIntersectType point = WorldIntersectType::GroundScene);
+	bool IsValidWorldPosition(const NiPoint3& pos);
 	void ReplaceObjects(std::vector<NiPickablePtr> OldNodes, std::vector<NiPickablePtr> NewNodes, bool Backup = true);
 	void ShowSHMDElements(bool Show);
 	void UpdateSHBDData(std::vector<char> newData) 
@@ -185,6 +199,7 @@ private:
 
 	void SetVertexColorInternal(int ShapeID, int InternalBlockX, int InternalBlockY, NiColorA Color);
 	ShineBlockDataPtr _SHBD;
+	ShineBuildingInfoPtr _SBI;
 	ShineMapDataPtr _SHMD;
 	ShineIniPtr _INI;
 	HeightTerrainDataPtr _HTD;

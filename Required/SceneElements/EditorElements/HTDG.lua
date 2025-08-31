@@ -25,6 +25,28 @@ function render(ElementPtr)
             end 
             SetShowSHMDElements(EditModePtr,SnapMove)
         end
+        local brushMode = GetBrushMode(EditModePtr)
+        if CheckBox("Brush Mode", brushMode) then
+            if brushMode then
+                brushMode = false
+            else
+                brushMode = true
+            end
+            SetBrushMode(EditModePtr, brushMode)
+        end
+        
+        if brushMode then
+            Separator()
+            Text("Paint areas to generate, then confirm:")
+            if Button("Confirm Generation") then
+                ConfirmBrushGeneration(EditModePtr)
+            end
+            SameLine()
+            if Button("Clear Areas") then
+                ClearPaintedAreas(EditModePtr)
+            end
+        end
+        
         RenderBrushes(EditModePtr)
     end
 end

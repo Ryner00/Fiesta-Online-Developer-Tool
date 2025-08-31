@@ -1,5 +1,6 @@
 #pragma once
 #include "EditMode.h"
+#include "MinimapRenderer.h"
 
 NiSmartPointer(TerrainMode);
 class TerrainMode : public EditMode
@@ -42,11 +43,16 @@ class TerrainMode : public EditMode
 	virtual void Draw();
 	virtual void Update(float fTime);
 	virtual void ProcessInput();
+	virtual void ToggleMinimap() { _minimap.ToggleVisible(); }
 
 	int GetBrushSize() { return _BrushSize; }
 	virtual void SetBrushSize(int Size) { _BrushSize = Size; MouseOrb->SetScale((50.f / 160.f) * _BrushSize); }
 	void SetShowElements(bool Show);
 	bool GetShowElements() { return _ShowElements; }
+	
+	MinimapRenderer* GetMinimap() { return &_minimap; }
+	IngameWorldPtr GetTerrainWorld() { return kWorld; }
+	NiCameraPtr GetTerrainCamera() { return Camera; }
 	
 protected:
 	int _BrushSize = 1;
@@ -64,5 +70,7 @@ protected:
 	NiCameraPtr Camera;
 	NiPoint3 MouseIntersect;
 	NiPoint3 MouseIntersectAtClick;
+	
+	MinimapRenderer _minimap;
 
 };

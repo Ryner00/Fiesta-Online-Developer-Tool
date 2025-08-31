@@ -3,17 +3,39 @@
 #include <FiestaOnlineTool.h>
 #include <thread>
 #include <future>
+#include <chrono>
 #include <Data/IngameWorld/WorldChanges/FogChange.h>
+#include "Data/NiCustom/NiSHMDPickable.h"
 
 NiImplementRTTI(SHBDMode, TerrainMode);
 
 void SHBDMode::Draw()
 {
-	EditMode::Draw();
+	TerrainMode::Draw();
 
 	NiVisibleArray kVisible;
 	NiCullingProcess kCuller(&kVisible);
 	NiDrawScene(Camera, _BaseNode, kCuller);
+	
+	if (_terrainGenerationActive)
+	{
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImGui::SetNextWindowPos(ImVec2(viewport->WorkPos.x + 20, viewport->WorkPos.y + 20));
+		ImGui::SetNextWindowSize(ImVec2(300, 80));
+		ImGui::Begin("Terrain SHBD Generation", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+		
+		float progress = 0.0f;
+		if (_totalTerrainCells > 0)
+		{
+			progress = (float)_processedTerrainCells / (float)_totalTerrainCells;
+		}
+		
+		ImGui::Text("Generating terrain SHBD...");
+		ImGui::ProgressBar(progress, ImVec2(-1.0f, 0.0f), "");
+		ImGui::Text("Progress: %d / %d cells", _processedTerrainCells, _totalTerrainCells);
+		
+		ImGui::End();
+	}
 }
 void SHBDMode::Update(float fTime)
 {
@@ -22,6 +44,106 @@ void SHBDMode::Update(float fTime)
 	{
 		UpdateSHBD();
 	}
+	
+	_captureHeight = GetCurrentSHBDHeight();
+	
+	if (_terrainGenerationActive)
+	{
+		_terrainGenerationTimer += fTime;
+		
+		float targetFrameTime = 1.0f / 60.0f;
+		float maxProcessTime = targetFrameTime * 0.8f;
+		
+		auto startTime = std::chrono::high_resolution_clock::now();
+		
+		auto SHBD = kWorld->GetSHBD();
+		auto ini = kWorld->GetShineIni();
+		
+		if (!SHBD || !ini)
+		{
+			_terrainGenerationActive = false;
+			return;
+		}
+		
+		float PixelSize = SHBD->GetMapSize() * ini->GetOneBlockWidht() / SHBD->GetSHBDSize();
+		unsigned int SHBDSize = SHBD->GetSHBDSize();
+		
+		int cellsProcessed = 0;
+		int skipFactor = 8 - _generationAccuracy;
+		if (skipFactor < 1) skipFactor = 1;
+		if (skipFactor > 16) skipFactor = 16;
+		
+		_terrainCellsPerFrame = 5000 / skipFactor;
+		
+		
+		while (_currentTerrainY < (int)SHBDSize && cellsProcessed < _terrainCellsPerFrame)
+		{
+			if (_currentTerrainX >= (int)SHBDSize)
+			{
+				_currentTerrainX = 0;
+				_currentTerrainY += skipFactor;
+				continue;
+			}
+			
+			if ((_currentTerrainX % skipFactor == 0) && (_currentTerrainY % skipFactor == 0))
+			{
+				float worldX = _currentTerrainX * PixelSize;
+				float worldY = _currentTerrainY * PixelSize;
+				
+				bool walkable = true;
+				
+				NiPoint3 testPoint(worldX, worldY, _captureHeight);
+				
+				if (kWorld->UpdateZCoord(testPoint))
+				{
+					float heightDiff = fabsf(testPoint.z - _captureHeight);
+					if (heightDiff > _captureTolerance)
+					{
+						walkable = false;
+					}
+				}
+				else
+				{
+					walkable = false;
+				}
+				
+				std::vector<std::pair<int, int>> updates;
+				updates.reserve(skipFactor * skipFactor);
+				
+				for (int dy = 0; dy < skipFactor && (_currentTerrainY + dy) < (int)SHBDSize; dy++)
+				{
+					for (int dx = 0; dx < skipFactor && (_currentTerrainX + dx) < (int)SHBDSize; dx++)
+					{
+						updates.push_back({_currentTerrainX + dx, _currentTerrainY + dy});
+					}
+				}
+				
+				for (const auto& coord : updates)
+				{
+					SHBD->UpdateSHBDData(coord.first, coord.second, walkable);
+				}
+			}
+			
+			_currentTerrainX += skipFactor;
+			cellsProcessed++;
+			_processedTerrainCells += skipFactor * skipFactor;
+			
+			auto currentTime = std::chrono::high_resolution_clock::now();
+			auto elapsedTime = std::chrono::duration<float>(currentTime - startTime).count();
+			
+			if (elapsedTime > maxProcessTime)
+			{
+				break;
+			}
+		}
+		
+		if (_currentTerrainY >= (int)SHBDSize)
+		{
+			_terrainGenerationActive = false;
+			CreateSHBDNode();
+		}
+	}
+	
 	auto SHBD = kWorld->GetSHBD();
 	if (SHBD->HadDirectUpdate() || TextureConnector.empty())
 		CreateSHBDNode();
@@ -258,6 +380,202 @@ void SHBDMode::CreateSHBDNode()
 	_SHBDNode->UpdateProperties();
 	_SHBDNode->Update(0.0f);
 }
+
+void SHBDMode::AutoGenerateSHBD()
+{
+	auto SHBD = kWorld->GetSHBD();
+	auto ini = kWorld->GetShineIni();
+	if (!SHBD || !ini) return;
+	
+	_captureHeight = GetCurrentSHBDHeight();
+	
+	if (!_keepExistingSHBD)
+	{
+		unsigned int SHBDSize = SHBD->GetSHBDSize();
+		for (unsigned int h = 0; h < SHBDSize; h++)
+		{
+			for (unsigned int w = 0; w < SHBDSize; w++)
+			{
+				SHBD->UpdateSHBDData(w, h, true);
+			}
+		}
+		CreateSHBDNode();
+	}
+	
+	std::vector<NiSHMDPickablePtr> objects;
+	for (auto obj : kWorld->GetGroundObjects())
+	{
+		if (obj && NiIsKindOf(NiSHMDPickable, obj))
+		{
+			NiSHMDPickablePtr ptr = NiSmartPointerCast(NiSHMDPickable, obj);
+			if (ptr)
+			{
+				NiPoint3 objPos = ptr->GetWorldTranslate();
+				if (fabsf(objPos.z - _captureHeight) <= _captureTolerance)
+				{
+					objects.push_back(ptr);
+				}
+			}
+		}
+	}
+	
+	GenerateSHBDForObjects(objects);
+}
+
+void SHBDMode::GenerateSHBDForObjects(const std::vector<NiSHMDPickablePtr>& objects)
+{
+	auto SHBD = kWorld->GetSHBD();
+	auto ini = kWorld->GetShineIni();
+	if (!SHBD || !ini) return;
+	
+	float PixelSize = SHBD->GetMapSize() * ini->GetOneBlockWidht() / SHBD->GetSHBDSize();
+	unsigned int SHBDSize = SHBD->GetSHBDSize();
+	
+	for (auto& obj : objects)
+	{
+		if (!obj) continue;
+		
+		NiPoint3 objPos = obj->GetWorldTranslate();
+		float objScale = obj->GetWorldScale();
+		
+		NiBound objBound = obj->GetWorldBound();
+		float boundRadius = objBound.GetRadius();
+		
+		if (boundRadius < 1.5f) continue;
+		
+		float sampleRadius = boundRadius * 2.0f;
+		int sampleGrid = 8 + ((_generationAccuracy - 1) * 8);
+		if (sampleGrid < 8) sampleGrid = 8;
+		if (sampleGrid > 64) sampleGrid = 64;
+		
+		std::vector<std::vector<bool>> occupancyGrid(sampleGrid, std::vector<bool>(sampleGrid, false));
+		
+		for (int y = 0; y < sampleGrid; y++)
+		{
+			for (int x = 0; x < sampleGrid; x++)
+			{
+				float normX = (float)x / (float)(sampleGrid - 1);
+				float normY = (float)y / (float)(sampleGrid - 1);
+				
+				float testX = objPos.x + (normX - 0.5f) * sampleRadius * 2.0f;
+				float testY = objPos.y + (normY - 0.5f) * sampleRadius * 2.0f;
+				float testZ = objPos.z;
+				
+				NiPoint3 rayStart(testX, testY, objPos.z + 50.0f);
+				NiPoint3 rayEnd(testX, testY, objPos.z - 10.0f);
+				NiPoint3 rayDir = rayEnd - rayStart;
+				rayDir.Unitize();
+				
+				NiPick objPick;
+				objPick.SetPickType(NiPick::FIND_FIRST);
+				objPick.SetSortType(NiPick::SORT);
+				objPick.SetIntersectType(NiPick::TRIANGLE_INTERSECT);
+				objPick.SetFrontOnly(false);
+				objPick.SetReturnNormal(false);
+				objPick.SetObserveAppCullFlag(true);
+				objPick.SetTarget(obj);
+				
+				if (objPick.PickObjects(rayStart, rayDir, true))
+				{
+					occupancyGrid[y][x] = true;
+				}
+			}
+		}
+		
+		for (int y = 0; y < sampleGrid; y++)
+		{
+			for (int x = 0; x < sampleGrid; x++)
+			{
+				if (!occupancyGrid[y][x]) continue;
+				
+				float normX = (float)x / (float)(sampleGrid - 1);
+				float normY = (float)y / (float)(sampleGrid - 1);
+				
+				float worldX = objPos.x + (normX - 0.5f) * sampleRadius * 2.0f;
+				float worldY = objPos.y + (normY - 0.5f) * sampleRadius * 2.0f;
+				
+				int sHBDX = (int)(worldX / PixelSize);
+				int sHBDY = (int)(worldY / PixelSize);
+				
+				if (sHBDX < 0 || sHBDX >= (int)SHBDSize || sHBDY < 0 || sHBDY >= (int)SHBDSize) continue;
+				
+				UpdateSHBDArea(sHBDX, sHBDY, SHBDSize, false);
+			}
+		}
+	}
+	
+	CreateSHBDNode();
+}
+
+void SHBDMode::UpdateSHBDArea(int centerX, int centerY, unsigned int SHBDSize, bool value)
+{
+	auto SHBD = kWorld->GetSHBD();
+	if (!SHBD) return;
+	
+	for (int dY = -1; dY <= 1; dY++)
+	{
+		for (int dX = -1; dX <= 1; dX++)
+		{
+			int fillX = centerX + dX;
+			int fillY = centerY + dY;
+			
+			if (fillX < 0 || fillX >= (int)SHBDSize || fillY < 0 || fillY >= (int)SHBDSize) continue;
+			
+			SHBD->UpdateSHBDData(fillX, fillY, value);
+		}
+	}
+}
+
+void SHBDMode::AutoGenerateTerrainSHBD()
+{
+	auto SHBD = kWorld->GetSHBD();
+	auto ini = kWorld->GetShineIni();
+	if (!SHBD || !ini) return;
+	
+	_captureHeight = GetCurrentSHBDHeight();
+	
+	_terrainGenerationActive = true;
+	_terrainGenerationTimer = 0.0f;
+	_currentTerrainX = 0;
+	_currentTerrainY = 0;
+	_processedTerrainCells = 0;
+	_totalTerrainCells = SHBD->GetSHBDSize() * SHBD->GetSHBDSize();
+	
+	unsigned int SHBDSize = SHBD->GetSHBDSize();
+	
+	if (!_keepExistingSHBD)
+	{
+		for (unsigned int h = 0; h < SHBDSize; h++)
+		{
+			for (unsigned int w = 0; w < SHBDSize; w++)
+			{
+				SHBD->UpdateSHBDData(w, h, true);
+			}
+		}
+	}
+	
+	float PixelSize = SHBD->GetMapSize() * ini->GetOneBlockWidht() / SHBD->GetSHBDSize();
+	
+}
+
+void SHBDMode::ResetSHBD()
+{
+	auto SHBD = kWorld->GetSHBD();
+	if (!SHBD) return;
+	
+	unsigned int SHBDSize = SHBD->GetSHBDSize();
+	
+	for (unsigned int h = 0; h < SHBDSize; h++)
+	{
+		for (unsigned int w = 0; w < SHBDSize; w++)
+		{
+			SHBD->UpdateSHBDData(w, h, true);
+		}
+	}
+	
+	CreateSHBDNode();
+}
+
 void SHBDMode::UpdateMouseIntersect()
 {
 	NiPoint3 kOrigin, kDir;

@@ -10,6 +10,7 @@
 
 #include <NiD3DShaderFactory.h>
 #include <NiDX9Renderer.h>
+#include <Scene/EditorScene/EditorScene.h>
 std::atomic<float> FiestaOnlineTool::DeltaTime = 0.f;
 
 void FiestaOnlineTool::OnIdle()
@@ -29,6 +30,14 @@ void FiestaOnlineTool::OnIdle()
             float Time = NiGetCurrentTimeInSec();
             DeltaTime = Time - m_fLastUpdateTime;
             m_fLastUpdateTime = Time;
+            
+            if (ImGui::IsKeyPressed((ImGuiKey)'M'))
+            {
+                EditorScenePtr editorScene = NiDynamicCast(EditorScene, _Scene);
+                if (editorScene && editorScene->GetCurrentEditMode())
+                    editorScene->GetCurrentEditMode()->ToggleMinimap();
+            }
+            
             if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemHovered())
             {
                 WasPreviousFrameHovered = true;

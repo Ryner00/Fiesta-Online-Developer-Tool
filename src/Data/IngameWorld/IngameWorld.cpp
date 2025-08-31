@@ -9,6 +9,7 @@
 #include "Data/SHN/Mobloader.h"
 #include "NiCustom/NiSHMDPickable.h"
 #include <future>
+#include <cmath>
 
 #pragma region Gizmo-Calc
 glm::vec4 ConvertQuatToAngleAxis(glm::quat q)
@@ -43,6 +44,7 @@ IngameWorld::IngameWorld(MapInfo* Info) : _MapInfo(Info)
 		return; 
 
 	_SHBD = NiNew ShineBlockData();
+	_SBI = NiNew ShineBuildingInfo();
 	_SHMD = NiNew ShineMapData();
 	_INI = NiNew ShineIni();
 
@@ -51,6 +53,7 @@ IngameWorld::IngameWorld(MapInfo* Info) : _MapInfo(Info)
 		/*New Map*/
 		int MapSize = 256;
 		_SHBD->CreateEmpty(MapSize);
+		_SBI->CreateEmpty();
 		_SHMD->CreateEmpty();
 		_INI->CreateEmpty(_MapInfo,MapSize);
 		_HTD = NiNew HeightTerrainData;
@@ -62,6 +65,10 @@ IngameWorld::IngameWorld(MapInfo* Info) : _MapInfo(Info)
 		auto _SHBDFuture = std::async(std::launch::async, [this]()
 			{
 				return _SHBD->Load(_MapInfo);
+			});
+		auto _SBIFuture = std::async(std::launch::async, [this]()
+			{
+				return _SBI->Load(_MapInfo);
 			});
 		auto _SHMDFuture = std::async(std::launch::async, [this]()
 			{
@@ -79,6 +86,8 @@ IngameWorld::IngameWorld(MapInfo* Info) : _MapInfo(Info)
 		});
 		if (!_SHBDFuture.get())
 			LogError("Failed to Load SHBD for " + _MapInfo->MapName);
+		if (!_SBIFuture.get())
+			LogInfo("No SBI file found for " + _MapInfo->MapName);
 		if (!_SHMDFuture.get())
 			LogError("Failed to Load SHMD for " + _MapInfo->MapName);
 		if (!_INIHTDFuture.get())
@@ -164,10 +173,12 @@ IngameWorld::IngameWorld(MapInfo* Info, int MapSize) : _MapInfo(Info)
 
 
 	_SHBD = NiNew ShineBlockData();
+	_SBI = NiNew ShineBuildingInfo();
 	_SHMD = NiNew ShineMapData();
 	_INI = NiNew ShineIni();
 
 	_SHBD->CreateEmpty(MapSize);
+	_SBI->CreateEmpty();
 	_SHMD->CreateEmpty();
 	_INI->CreateEmpty(_MapInfo, MapSize);
 	_HTD = NiNew HeightTerrainData;
@@ -317,7 +328,52 @@ NiPoint3 IngameWorld::GetWorldPoint(WorldIntersectType point)
 				return results.GetAt(0)->GetIntersection();
 		}
 	}
+	return NiPoint3::ZERO;
 }
+
+NiPoint3 IngameWorld::GetWorldPointFromScreen(float screenX, float screenY, WorldIntersectType point)
+{
+	NiPoint3 kOrigin, kDir;
+	if (m_spCamera->WindowPointToRay(screenX, screenY, kOrigin, kDir))
+	{
+		NiPick _Pick;
+		_Pick.SetPickType(NiPick::FIND_FIRST);
+		_Pick.SetSortType(NiPick::SORT);
+		_Pick.SetIntersectType(NiPick::TRIANGLE_INTERSECT);
+		_Pick.SetFrontOnly(true);
+		_Pick.SetReturnNormal(true);
+		_Pick.SetObserveAppCullFlag(true);
+		switch (point) 
+		{
+			break;
+		case GroundCollision:
+				_Pick.SetTarget(m_spGroundCollidee);
+			break;
+		case HTD:
+			_Pick.SetTarget(m_spGroundTerrain);
+			break;
+		case GroundScene:
+		default:
+			_Pick.SetTarget(m_spGroundScene); 
+			break;
+		}
+		if (_Pick.PickObjects(kOrigin, kDir, true))
+		{
+			NiPick::Results& results = _Pick.GetResults();
+			if (results.GetSize() > 0)
+				return results.GetAt(0)->GetIntersection();
+		}
+	}
+	return NiPoint3::ZERO;
+}
+
+bool IngameWorld::IsValidWorldPosition(const NiPoint3& pos)
+{
+	return !isnan(pos.x) && !isnan(pos.y) && !isnan(pos.z) &&
+		   isfinite(pos.x) && isfinite(pos.y) && isfinite(pos.z) &&
+		   fabs(pos.x) < 100000.0f && fabs(pos.y) < 100000.0f && fabs(pos.z) < 100000.0f;
+}
+
 NiPickablePtr IngameWorld::PickObject() 
 {
 	NiPoint3 kOrigin, kDir;
@@ -998,7 +1054,7 @@ bool IngameWorld::UpdateZCoord(NiPoint3& Pos)
 	float z = -2500;
 
 	NiPick _Pick;
-	_Pick.SetPickType(NiPick::FIND_ALL);
+	_Pick.SetPickType(NiPick::FIND_FIRST);
 	_Pick.SetSortType(NiPick::SORT);
 	_Pick.SetIntersectType(NiPick::TRIANGLE_INTERSECT);
 	_Pick.SetFrontOnly(false);
@@ -1009,12 +1065,9 @@ bool IngameWorld::UpdateZCoord(NiPoint3& Pos)
 		if (_Pick.PickObjects(Org, NiPoint3(.0,.0,1.0), true))
 		{
 			NiPick::Results& results = _Pick.GetResults();
-			for (int i = 0; i < results.GetSize(); i++) 
-			{
+			if (results.GetSize() > 0) {
 				NiPick::Record* record = results.GetAt(0);
-				if (!record)
-					continue;
-				if (z < record->GetIntersection().z) {
+				if (record && z < record->GetIntersection().z) {
 					z = record->GetIntersection().z;
 				}
 			}
@@ -1025,12 +1078,9 @@ bool IngameWorld::UpdateZCoord(NiPoint3& Pos)
 	if (_Pick.PickObjects(Org, NiPoint3(.0, .0, 1.0), true))
 	{
 		NiPick::Results& results = _Pick.GetResults();
-		for (int i = 0; i < results.GetSize(); i++)
-		{
-			NiPick::Record* record = results.GetAt(i);
-			if (!record)
-				continue;
-			if (z < record->GetIntersection().z) {
+		if (results.GetSize() > 0) {
+			NiPick::Record* record = results.GetAt(0);
+			if (record && z < record->GetIntersection().z) {
 				z = record->GetIntersection().z;
 			}
 		}

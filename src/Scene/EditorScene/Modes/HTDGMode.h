@@ -19,10 +19,22 @@ class HTDGMode : public TerrainBrushMode
 	} 
 
 	virtual void ProcessInput();
+	void SetBrushMode(bool enabled) { _brushMode = enabled; }
+	bool GetBrushMode() const { return _brushMode; }
+	void ConfirmBrushGeneration();
+	void ClearPaintedAreas() { _paintedPoints.clear(); }
+	bool IsPointInPaintedArea(const NiPoint3& point) const;
 	
 	virtual std::string GetEditModeName() { return "HTDG"; }
 
 private:
 	HeightTerrainData _Data;
+	bool _brushMode = false;
+	bool _isDrawing = false;
+	struct PaintedArea {
+		NiPoint3 worldPos;
+		float brushSize;
+	};
+	std::vector<PaintedArea> _paintedPoints;
 	
 };

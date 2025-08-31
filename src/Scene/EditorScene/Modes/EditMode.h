@@ -21,6 +21,7 @@ class EditMode : public NiRefObject
 	virtual void Draw();
 	virtual void ProcessInput(){}
 	virtual std::string GetEditModeName() { return ""; }
+	virtual void ToggleMinimap() {}
 protected:
 	IngameWorldPtr kWorld;
 	FiestaScenePtr _Scene;
